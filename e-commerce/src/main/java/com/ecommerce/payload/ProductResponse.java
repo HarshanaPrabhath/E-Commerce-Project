@@ -1,20 +1,15 @@
 package com.ecommerce.payload;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class
+public class ProductResponse {
 
-
-
-CategoryDTO {
-    private Long categoryId;
-    private String categoryName;
+    private List<ProductDTO> content;
 }
-
-
