@@ -1,7 +1,6 @@
 package com.ecommerce.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,6 +21,10 @@ public class Product {
     private double price;
     private double discount;
     private double specialPrice;
+
+    @ManyToOne
+    @JoinColumn(name = "seller_id")
+    private User user;
 
     @ManyToOne
     @JoinColumn(name ="category_id")
