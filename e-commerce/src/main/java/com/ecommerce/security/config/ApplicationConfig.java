@@ -69,6 +69,7 @@ public class ApplicationConfig {
                 .disable()
                 .authorizeHttpRequests()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
@@ -105,25 +106,25 @@ public class ApplicationConfig {
                                        RoleRepository roleRepository,
                                        PasswordEncoder passwordEncoder) {
         return args -> {
+            userRepository.deleteAll(); // optional
 
-            // Clear old data for fresh start
-            userRepository.deleteAll();
+            // Ensure roles are saved first (if not already there)
+            roleRepository.save(new Role(AppRole.ROLE_USER));
+            roleRepository.save(new Role(AppRole.ROLE_ADMIN));
+            roleRepository.save(new Role(AppRole.ROLE_SELLER));
 
-            // Sample roles (if using a RoleRepository)
-            Role userRole = new Role(AppRole.ROLE_USER);
-            Role adminRole = new Role(AppRole.ROLE_ADMIN);
+            // ✅ Fetch managed role entities from DB
+            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow();
+            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN).orElseThrow();
 
-            // Optionally save roles first if needed
-            // roleRepository.saveAll(List.of(userRole, adminRole));
-
-            // Create users
+            // Create user1
             User user1 = new User();
             user1.setUserName("john");
             user1.setEmail("john@example.com");
             user1.setPassword(passwordEncoder.encode("userpass"));
             user1.setRoles(new HashSet<>(List.of(userRole)));
 
-
+            // Create user2
             User user2 = new User();
             user2.setUserName("admin");
             user2.setEmail("admin@example.com");
@@ -132,7 +133,9 @@ public class ApplicationConfig {
 
             userRepository.saveAll(List.of(user1, user2));
 
-            System.out.println("Sample users initialized in H2 database.");
+            System.out.println("✅ Sample users initialized in H2 database.");
         };
     }
+
 }
+

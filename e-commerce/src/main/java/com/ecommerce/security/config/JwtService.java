@@ -6,8 +6,13 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.WebUtils;
 
 import java.security.Key;
 import java.util.Date;
@@ -20,6 +25,8 @@ public class JwtService {
 
     private static final String SECRET_KEY = "Z3s8D9fLrV1qW5mNtJxB7eKwY6uGh0PaMzRdTiLkVpSnCoXvUrEbHaGyNzMqJcKtZpWlXvOmCrYfBvTyLdRuGnHpWsKeJdXlNqMqTsBpErYwUeIrOpNvBsXqAjFmDcHsLkJrVsZxMfEdBpUqYrTgVnZmWxAoEuJrPtHgYdXoClMrNfBqStUkXiVwJzQtGkMnBjRpTwLuEwFoGpTxMnYcZoHeLdKsWqFxNyKrLzAbXe";
 
+    @Value("${spring.ecom.app.jwtCookieName}")
+    private String jwtCookie;
 
     public String extractUserName(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -58,6 +65,9 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("JWT token is null or empty");
+        }
         return Jwts
                 .parserBuilder()
                 .setSigningKey(getSignKey())
@@ -74,6 +84,33 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUserName(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    public String getJwtFromHeader(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
+    public String getJwtFromCookie(HttpServletRequest request) {
+        Cookie cookie = WebUtils.getCookie(request, jwtCookie);
+        if(cookie != null) {
+            return cookie.getValue();
+        }else
+            return null;
+    }
+
+    public ResponseCookie generateJwtCookie(UserDetails userDetails) {
+        String token = generateToken(userDetails);
+        ResponseCookie cookie = ResponseCookie.from(jwtCookie,token)
+                .path("/api")
+                .maxAge(24*60*60)
+                .httpOnly(false)
+                .build();
+
+        return cookie;
     }
 
 }
