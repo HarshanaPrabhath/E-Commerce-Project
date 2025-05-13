@@ -37,8 +37,9 @@ public class User {
     private String email;
 
     @NotEmpty
-    @Size(max = 20)
+
     private String password;
+
 
     @ToString.Exclude
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

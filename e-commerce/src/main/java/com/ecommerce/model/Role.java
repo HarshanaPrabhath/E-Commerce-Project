@@ -2,6 +2,7 @@ package com.ecommerce.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,9 +20,13 @@ public class Role {
     @Column(name = "role_id")
     private Integer roleId;
 
-    @NotEmpty
+    @NotNull
     @ToString.Exclude
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private AppRole roleName;
+
+    public Role(AppRole appRole) {
+        this.roleName = appRole;
+    }
 }
