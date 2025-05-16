@@ -8,13 +8,16 @@ import com.ecommerce.security.response.RegisterResponse;
 import com.ecommerce.security.response.UserInfoResponse;
 import com.ecommerce.security.auth.AuthenticationService;
 import com.ecommerce.security.request.RegisterRequest;
+import com.ecommerce.security.services.UserDetailsImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.couchbase.CouchbaseProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -52,5 +55,34 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<UserInfoResponse>  authenticate(@RequestBody LoginRequest request){
         return authenticationService.authenticate(request);
+    }
+
+    @GetMapping("/username")
+    public String username(Authentication authentication){
+        if(authentication == null){
+           return authentication.getName();
+        }
+        return "Not Found User";
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<UserInfoResponse> currentUser(Authentication authentication) {
+
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+
+        List<String> roles = userDetails.getAuthorities()
+                .stream()
+                .map(item -> item.getAuthority())
+                .toList();
+
+        UserInfoResponse userInfoResponse = new UserInfoResponse(userDetails.getUserId(),userDetails.getUsername(),userDetails.getEmail(),roles);
+
+        return ResponseEntity.ok().body(userInfoResponse);
+    }
+
+
+    @PostMapping("/signout")
+    public ResponseEntity<String> signout(){
+        return authenticationService.signOut();
     }
 }

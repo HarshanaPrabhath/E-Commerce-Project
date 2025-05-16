@@ -12,12 +12,15 @@ import com.ecommerce.security.request.RegisterRequest;
 import com.ecommerce.security.response.RegisterResponse;
 import com.ecommerce.security.response.UserInfoResponse;
 import com.ecommerce.security.services.UserDetailsImpl;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +30,8 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class AuthenticationService {
+public class
+AuthenticationService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -128,5 +132,14 @@ public class AuthenticationService {
                 .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                 .body(userInfoResponse);
    }
+
+    public ResponseEntity<String> signOut() {
+        ResponseCookie cookie = jwtService.getClearJwtCoockie();
+
+       return ResponseEntity
+                .ok()
+                .header(HttpHeaders.SET_COOKIE,cookie.toString())
+                .body("User Signout Successfully");
+    }
 }
 

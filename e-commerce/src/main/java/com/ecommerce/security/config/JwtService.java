@@ -94,6 +94,7 @@ public class JwtService {
         return null;
     }
 
+    //cookie based impls
     public String getJwtFromCookie(HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, jwtCookie);
         if(cookie != null) {
@@ -108,6 +109,15 @@ public class JwtService {
                 .path("/api")
                 .maxAge(24*60*60)
                 .httpOnly(false)
+                .build();
+
+        return cookie;
+    }
+
+    public ResponseCookie getClearJwtCoockie(){
+
+        ResponseCookie cookie = ResponseCookie.from(jwtCookie,null)
+                .path("/api")
                 .build();
 
         return cookie;
