@@ -46,6 +46,10 @@ public class User {
     private Set<Product> products = new HashSet<>();
 
     @ToString.Exclude
+    @OneToOne(mappedBy = "user", cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE })
+    private Cart cart;
+
+    @ToString.Exclude
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JoinTable(name = "user_address",
             joinColumns = @JoinColumn(name = "user_id"),
