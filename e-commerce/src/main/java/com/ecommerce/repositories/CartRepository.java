@@ -2,7 +2,9 @@ package com.ecommerce.repositories;
 
 import com.ecommerce.model.Cart;
 import com.ecommerce.model.User;
+import com.ecommerce.payload.CartDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -10,5 +12,13 @@ import java.util.Optional;
 @Repository
 public interface CartRepository extends JpaRepository<Cart,Integer> {
     Optional<Cart> findByUser(User user);
+
+    @Query("SELECT c FROM Cart c WHERE c.user.email = ?1")
+    Cart findCartByEmail(String email);
+
+    @Query("SELECT c FROM Cart c WHERE c.user.email = ?1 AND c.cartId = ?2")
+    Cart getCartByEmailAndCartId(String email, Integer cartId);
+
+
 
 }

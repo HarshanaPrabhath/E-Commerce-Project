@@ -10,8 +10,8 @@ import java.util.List;
 
 @Entity
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class Cart {
 
     @Id
@@ -24,8 +24,10 @@ public class Cart {
     @JoinColumn(name="user_id")
     private User user;
 
-    @OneToMany(mappedBy = "cart", cascade={CascadeType.PERSIST,CascadeType.MERGE,CascadeType.REMOVE},orphanRemoval = true)
+    @OneToMany(mappedBy = "cart", cascade = {
+            CascadeType.PERSIST,
+            CascadeType.MERGE,
+            CascadeType.REMOVE
+    }, orphanRemoval = true)
     private List<CartItems> cartItems = new ArrayList<>();
-
-
 }
