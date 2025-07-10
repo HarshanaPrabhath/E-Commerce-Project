@@ -23,7 +23,7 @@ public class Role {
     @NotNull
     @ToString.Exclude
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(length = 20,unique = true)
     private AppRole roleName;
 
     public Role(AppRole appRole) {

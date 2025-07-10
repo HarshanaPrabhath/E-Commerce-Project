@@ -76,6 +76,7 @@ public class ApplicationConfig {
                 .requestMatchers("/api/public/**").permitAll()
 //                .requestMatchers("/api/admin/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
+//                .requestMatchers("/api/address/**").permitAll()
                 .requestMatchers("/images/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
@@ -101,41 +102,41 @@ public class ApplicationConfig {
                 "webjars/**"
         ));
     }
-    @Bean
-    public CommandLineRunner initUsers(UserRepository userRepository,
-                                       RoleRepository roleRepository,
-                                       PasswordEncoder passwordEncoder) {
-        return args -> {
-            userRepository.deleteAll(); // optional
-
-            // Ensure roles are saved first (if not already there)
-            roleRepository.save(new Role(AppRole.ROLE_USER));
-            roleRepository.save(new Role(AppRole.ROLE_ADMIN));
-            roleRepository.save(new Role(AppRole.ROLE_SELLER));
-
-            // ✅ Fetch managed role entities from DB
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow();
-            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN).orElseThrow();
-
-            // Create user1
-            User user1 = new User();
-            user1.setUserName("john");
-            user1.setEmail("john@example.com");
-            user1.setPassword(passwordEncoder.encode("userpass"));
-            user1.setRoles(new HashSet<>(List.of(userRole)));
-
-            // Create user2
-            User user2 = new User();
-            user2.setUserName("admin");
-            user2.setEmail("admin@example.com");
-            user2.setPassword(passwordEncoder.encode("adminpass"));
-            user2.setRoles(new HashSet<>(List.of(adminRole)));
-
-            userRepository.saveAll(List.of(user1, user2));
-
-            System.out.println("✅ Sample users initialized in H2 database.");
-        };
-    }
+//    @Bean
+//    public CommandLineRunner initUsers(UserRepository userRepository,
+//                                       RoleRepository roleRepository,
+//                                       PasswordEncoder passwordEncoder) {
+//        return args -> {
+//            userRepository.deleteAll(); // optional
+//
+//            // Ensure roles are saved first (if not already there)
+//            roleRepository.save(new Role(AppRole.ROLE_USER));
+//            roleRepository.save(new Role(AppRole.ROLE_ADMIN));
+//            roleRepository.save(new Role(AppRole.ROLE_SELLER));
+//
+//            // ✅ Fetch managed role entities from DB
+//            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER).orElseThrow();
+//            Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN).orElseThrow();
+//
+//            // Create user1
+//            User user1 = new User();
+//            user1.setUserName("john");
+//            user1.setEmail("john@example.com");
+//            user1.setPassword(passwordEncoder.encode("userpass"));
+//            user1.setRoles(new HashSet<>(List.of(userRole)));
+//
+//            // Create user2
+//            User user2 = new User();
+//            user2.setUserName("admin");
+//            user2.setEmail("admin@example.com");
+//            user2.setPassword(passwordEncoder.encode("adminpass"));
+//            user2.setRoles(new HashSet<>(List.of(adminRole)));
+//
+//            userRepository.saveAll(List.of(user1, user2));
+//
+//            System.out.println("✅ Sample users initialized in H2 database.");
+//        };
+//    }
 
 }
 

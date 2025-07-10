@@ -2,7 +2,6 @@ package com.ecommerce.service;
 
 import com.ecommerce.payload.CartDTO;
 import jakarta.transaction.Transactional;
-import org.hibernate.id.IntegralDataTypeHolder;
 
 import java.util.List;
 
@@ -17,4 +16,6 @@ public interface CartService {
     CartDTO updateCartQuantityInCart(Integer productId, Integer quantity);
 
     String deleteProductFromCart(Integer cartId, Integer productId);
+
+    void updateProductInCarts(Integer cartId, Long productId);
 }
