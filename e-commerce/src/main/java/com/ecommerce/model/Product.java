@@ -29,10 +29,13 @@ public class Product {
     @JoinColumn(name = "seller_id")
     private User user;
 
+    @Column(nullable = false)
+    private boolean isActive = true;
+
     @ManyToOne
     @JoinColumn(name ="category_id")
     private Category category;
 
-    @OneToMany(mappedBy = "product", cascade = {CascadeType.MERGE,CascadeType.PERSIST},fetch= FetchType.EAGER)
+    @OneToMany(mappedBy = "product", cascade = {CascadeType.MERGE,CascadeType.PERSIST,CascadeType.REMOVE},fetch= FetchType.EAGER)
     private List<CartItems> cartItems = new ArrayList<>();
 }

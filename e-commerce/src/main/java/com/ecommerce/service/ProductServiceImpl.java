@@ -188,16 +188,24 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO deleteProduct(Long productId) {
-        Product product = productRepository.findById(productId).
-                orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
+        Product product = productRepository.findActiveProductById(productId);
 
+        if(product == null){
+            throw new ResourceNotFoundException("Product", "productId", productId.toString());
+        }
+
+
+        // Optionally remove product from carts, if you want
         List<Cart> carts = cartRepository.findCartsByProductId(productId);
         carts.forEach(cart -> cartService.deleteProductFromCart(cart.getCartId(), Math.toIntExact(productId)));
 
-        productRepository.delete(product);
+        // Soft delete: mark product as inactive
+        product.setActive(false);
+        productRepository.save(product);
 
         return modelMapper.map(product, ProductDTO.class);
     }
+
 
     @Override
     public ProductDTO updateProductImage(Long productId, MultipartFile productImage) throws IOException {

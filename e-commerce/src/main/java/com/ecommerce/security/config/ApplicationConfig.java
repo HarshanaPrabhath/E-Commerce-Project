@@ -76,7 +76,7 @@ public class ApplicationConfig {
                 .requestMatchers("/api/public/**").permitAll()
 //                .requestMatchers("/api/admin/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
-//                .requestMatchers("/api/address/**").permitAll()
+//                .requestMatchers("/api/**").permitAll()
                 .requestMatchers("/images/**").permitAll()
                 .anyRequest().authenticated()
                 .and()

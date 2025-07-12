@@ -1,10 +1,9 @@
 package com.ecommerce.repositories;
 
-import com.ecommerce.model.Address;
+import com.ecommerce.model.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface AddressRepository extends JpaRepository<Address,Long> {
-
+public interface PaymentRepository extends JpaRepository<Payment,Long> {
 }
