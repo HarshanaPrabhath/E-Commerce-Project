@@ -30,14 +30,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-//        String path = request.getRequestURI();
-//        if (path.startsWith("/api/auth/register") || path.startsWith("/api/auth/login")) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
 
-        final String token = jwtService.getJwtFromCookie(request);
-//        System.out.print("extracted cookie" + token);
+        final String token = parseJwt(request);
 
         if (token == null || token.trim().isEmpty()) {
             filterChain.doFilter(request, response);
@@ -45,7 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String userEmail = jwtService.extractUserName(token);
-//        System.out.print("user email from token" + userEmail);
+
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
@@ -63,6 +57,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    public String parseJwt(HttpServletRequest request){
+
+        String jwtFromCookie = jwtService.getJwtFromCookie(request);
+
+        if (jwtFromCookie != null) {
+            return jwtFromCookie;
+        }
+
+        String jwtFromHeader = jwtService.getJwtFromHeader(request);
+
+        if(jwtFromHeader != null){
+            return jwtFromHeader;
+        }
+        return null;
+
     }
 
 }

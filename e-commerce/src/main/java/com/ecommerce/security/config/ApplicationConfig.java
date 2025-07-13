@@ -98,7 +98,7 @@ public class ApplicationConfig {
                 "/v2/api-docs",
                 "/swagger-resource",
                 "/configuration/security",
-                "/swagger-ui.html",
+                "/swagger-ui/",
                 "webjars/**"
         ));
     }
