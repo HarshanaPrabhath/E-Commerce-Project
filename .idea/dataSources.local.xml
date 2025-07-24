@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal" created-in="IU-251.26927.53">
+    <data-source name="ecommerce@ecommerce.c3isqe2ye2fa.eu-north-1.rds.amazonaws.com" uuid="eec812cb-e1d0-4fdc-bc75-3031f4db6bbe">
+      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" dbms="MYSQL" />
+      <user-name>admin</user-name>
+      <schema-mapping />
+      <load-sources>user_and_system_sources</load-sources>
+    </data-source>
+  </component>
+</project>

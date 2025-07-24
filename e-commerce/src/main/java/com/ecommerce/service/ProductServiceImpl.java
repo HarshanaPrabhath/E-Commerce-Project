@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,21 +52,44 @@ public class ProductServiceImpl implements ProductService {
     @Value("${project.image}")
     private String path;
 
+    @Value("${image.base.url}")
+    private String imageBaseUrl;
+
     @Override
-    public ProductResponse getAllProducts(Integer pageNumber, Integer pageSize,String sortBy,String sortOrder) {
+    public ProductResponse getAllProducts(Integer pageNumber, Integer pageSize,String sortBy,String sortOrder,String keyWord, String category) {
+
         Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
 
         Pageable pageDetails = PageRequest.of(pageNumber,pageSize,sortByAndOrder);
 
-        Page<Product> pageProducts = productRepository.findAll(pageDetails);
+        Specification<Product> spec = Specification.where(null);
+        if(keyWord !=null && !keyWord.isEmpty()){
+            spec = spec.and((root,query,criteriaBuilder) ->
+            criteriaBuilder.like(criteriaBuilder.lower(root.get("productName")), "%" + keyWord.toLowerCase() + "%"));
+        }
+
+        if (category != null && !category.isEmpty()) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("category").get("categoryName"), category)
+            );
+        }
+
+        Page<Product> pageProducts = productRepository.findAll(spec, pageDetails);
+
         List<Product> products = pageProducts.getContent();
 
        if(products.isEmpty()){
            throw new ApiException("No Product Created Till Now !!!");
        }
-       List<ProductDTO> productDTOs = products.stream().map(p -> modelMapper.map(p, ProductDTO.class)).toList();
+       List<ProductDTO> productDTOs = products.stream()
+               .map(p -> {
+                   ProductDTO productDTO = modelMapper.map(p, ProductDTO.class);
+                    productDTO.setImage(constructImageUrl(p.getImage()));
+                   return productDTO;
+               })
+               .toList();
 
        ProductResponse productResponse = new ProductResponse();
        productResponse.setContent(productDTOs);
@@ -76,6 +100,10 @@ public class ProductServiceImpl implements ProductService {
        productResponse.setLastPage(pageProducts.isLast());
 
        return productResponse;
+    }
+
+    private String constructImageUrl(String imageName){
+        return imageBaseUrl.endsWith("/") ? imageBaseUrl + imageName : imageBaseUrl + "/" + imageName;
     }
 
     @Override
