@@ -21,6 +21,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -43,11 +45,11 @@ AuthenticationService {
         // Encode the password before saving it
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-        // Initialize a set of roles
-        Set<String> strRoles = request.getRole(); // Can be null or have roles like ["admin"]
+        // Safely handle null roles (missing from JSON → defaults to empty set)
+        Set<String> strRoles = request.getRole() != null ? request.getRole() : new HashSet<>();
         Set<Role> roles = new HashSet<>();
 
-        if (strRoles == null || strRoles.isEmpty()) {
+        if (strRoles.isEmpty()) {
             // Default role (ROLE_USER) when no role is provided
             Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found"));
@@ -88,8 +90,8 @@ AuthenticationService {
 
         // Generate JWT Token
         ResponseCookie jwtCookie = jwtService.generateJwtCookie(UserDetailsImpl.build(user));
-        // Return response with JWT token
 
+        // Return response with JWT token
         UserInfoResponse userInfoResponse = UserInfoResponse
                 .builder()
                 .userId(savedUser.getUserId())
@@ -101,13 +103,12 @@ AuthenticationService {
                         .collect(Collectors.toList()))
                 .build();
 
-
-
         return new RegisterResponse(userInfoResponse, jwtCookie);
     }
 
     public ResponseEntity<UserInfoResponse> authenticate(LoginRequest request) {
 
+            System.out.println(request.toString());
       authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
               request.getEmail(),
               request.getPassword()
@@ -126,6 +127,8 @@ AuthenticationService {
                        .map(role -> role.getRoleName().name()) // assuming getRoleName() returns AppRole enum
                        .collect(Collectors.toList())
        );
+     
+
 
         return ResponseEntity
                 .ok()

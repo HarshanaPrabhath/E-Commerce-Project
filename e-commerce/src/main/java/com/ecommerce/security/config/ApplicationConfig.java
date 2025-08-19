@@ -66,18 +66,20 @@ public class ApplicationConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
+        http    .cors() // enable CORS
+                .and()
                 .csrf()
                 .disable()
                 .authorizeHttpRequests()
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/").permitAll()
+                .requestMatchers("/api/auth/signin").permitAll()
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
 
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
-//                .requestMatchers("/api/admin/**").permitAll()
+                .requestMatchers("/api/admin/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
 //                .requestMatchers("/api/**").permitAll()
                 .requestMatchers("/images/**").permitAll()

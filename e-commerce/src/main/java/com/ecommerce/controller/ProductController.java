@@ -27,7 +27,7 @@ public class ProductController {
             @RequestParam(name = "pageSize",defaultValue = AppConstants.PAGE_SIZE,required = false) Integer pageSize,
             @RequestParam(name = "sortBy",defaultValue = AppConstants.SORT_PRODUCT_BY,required = false) String sortBy,
             @RequestParam(name = "sortOrder",defaultValue = AppConstants.SORT_DIR,required = false) String sortOrder,
-            @RequestParam(name = "keyWord", required = false)String keyWord,
+            @RequestParam(name = "keyword", required = false)String keyWord,
             @RequestParam(name = "category", required = false)String category
 
     ){

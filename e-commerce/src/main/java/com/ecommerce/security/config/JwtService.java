@@ -108,14 +108,15 @@ public class JwtService {
 
     public ResponseCookie generateJwtCookie(UserDetails userDetails) {
         String token = generateToken(userDetails);
-        ResponseCookie cookie = ResponseCookie.from(jwtCookie,token)
+        return ResponseCookie.from("springBootEcom", token)
                 .path("/api")
-                .maxAge(24*60*60)
-                .httpOnly(false)
+                .maxAge(24 * 60 * 60)
+                .httpOnly(true)       // keep token hidden from JS
+                .secure(false)        // true in production (HTTPS)
+                .sameSite("None")     // required for cross-origin cookies
                 .build();
-
-        return cookie;
     }
+
 
     public ResponseCookie getClearJwtCoockie(){
 
