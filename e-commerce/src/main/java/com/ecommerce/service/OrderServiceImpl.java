@@ -5,6 +5,7 @@ import com.ecommerce.exceptions.ResourceNotFoundException;
 import com.ecommerce.model.*;
 import com.ecommerce.payload.OrderDTO;
 import com.ecommerce.payload.OrderItemDTO;
+import com.ecommerce.payload.OrderRequestDTO;
 import com.ecommerce.repositories.*;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class OrderServiceImpl implements OrderService{
@@ -39,7 +41,7 @@ public class OrderServiceImpl implements OrderService{
 
     @Override
     @Transactional
-    public OrderDTO placeOrder(String emailId, Long addressId, String paymentMethod, String pgName, String pgPaymentId, String pgStatus, String pgResponseMessage) {
+    public OrderDTO placeOrder(String emailId, OrderRequestDTO request) {
 
         // Get User Cart
         Cart cart = cartRepository.findCartByEmail(emailId);
@@ -54,8 +56,36 @@ public class OrderServiceImpl implements OrderService{
         }
 
         // Get Address
-        Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", addressId.toString()));
+        if (request.getAddressId() == null) {
+            throw new ApiException("addressId is required.");
+        }
+        Address address = addressRepository.findById(request.getAddressId())
+                .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", request.getAddressId().toString()));
+
+        // Server total is source of truth; optionally verify client-sent totalAmount to catch client issues/tampering.
+        if (request.getTotalAmount() != null) {
+            double serverTotal = cart.getTotalPrice();
+            double clientTotal = request.getTotalAmount();
+            if (Math.abs(serverTotal - clientTotal) > 0.01) {
+                throw new ApiException("Total amount mismatch. Server=" + serverTotal + ", Client=" + clientTotal);
+            }
+        }
+
+        // Minimal payment validation (mock payment only; do not store full card data)
+        if (request.getPaymentMethod() == null || request.getPaymentMethod().isBlank()) {
+            throw new ApiException("paymentMethod is required.");
+        }
+        if ("CARD".equalsIgnoreCase(request.getPaymentMethod())) {
+            if (request.getCardNumber() == null || request.getCardNumber().length() < 12) {
+                throw new ApiException("cardNumber is required for CARD payment.");
+            }
+            if (request.getCvv() == null || request.getCvv().length() < 3) {
+                throw new ApiException("cvv is required for CARD payment.");
+            }
+            if (request.getExpMonth() == null || request.getExpYear() == null) {
+                throw new ApiException("expMonth and expYear are required for CARD payment.");
+            }
+        }
 
         // Create Order
         Order order = new Order();
@@ -65,8 +95,18 @@ public class OrderServiceImpl implements OrderService{
         order.setOrderStatus("Order Accepted");
         order.setAddress(address);
 
-        // Create Payment and link to order
-        Payment payment = new Payment(paymentMethod, pgPaymentId, pgStatus, pgName);
+        // Create Payment and link to order (mock/local only)
+        String pgPaymentId = "MOCK-" + UUID.randomUUID();
+        String last4 = last4(request.getCardNumber());
+        String responseMessage = "CARD".equalsIgnoreCase(request.getPaymentMethod()) && last4 != null
+                ? ("Charged card ending ****" + last4)
+                : "Payment captured (mock)";
+        Payment payment = new Payment();
+        payment.setPaymentMethod(request.getPaymentMethod());
+        payment.setPgName("MOCK");
+        payment.setPgPaymentId(pgPaymentId);
+        payment.setPgStatus("SUCCESS");
+        payment.setPgResponseMessage(responseMessage);
         payment.setOrder(order);
         payment = paymentRepository.save(payment);
         order.setPayment(payment);
@@ -117,9 +157,16 @@ public class OrderServiceImpl implements OrderService{
             orderDTO.getOrderItemDTOS().add(modelMapper.map(item, OrderItemDTO.class));
         }
 
-        orderDTO.setAddressId(addressId);
+        orderDTO.setAddressId(request.getAddressId());
 
         return orderDTO;
+    }
+
+    private static String last4(String cardNumber) {
+        if (cardNumber == null) return null;
+        String digits = cardNumber.replaceAll("\\s+", "");
+        if (digits.length() < 4) return null;
+        return digits.substring(digits.length() - 4);
     }
 
 }

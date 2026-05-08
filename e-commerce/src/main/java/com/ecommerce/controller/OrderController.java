@@ -17,9 +17,9 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
-    @PostMapping("/order/users/payments/{paymentMethod}")
-    public ResponseEntity<OrderDTO> orderProducts(@PathVariable String paymentMethod,
-                                                  @RequestBody OrderRequestDTO orderRequestDTO){
+    // Single API to place order + mock payment (no Stripe / no gateway integration).
+    @PostMapping("/order")
+    public ResponseEntity<OrderDTO> orderProducts(@RequestBody OrderRequestDTO orderRequestDTO){
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String emailId = authentication.getName();
 
@@ -27,16 +27,7 @@ public class OrderController {
         System.out.println("User: " + auth.getName());
         System.out.println("Authorities: " + auth.getAuthorities());
 
-        OrderDTO orderDTO =  orderService.placeOrder(
-                emailId,
-                orderRequestDTO.getAddressId(),
-                paymentMethod,
-                orderRequestDTO.getPgName(),
-                orderRequestDTO.getPgPaymentId(),
-                orderRequestDTO.getPgStatus(),
-                orderRequestDTO.getPgResponseMessage()
-
-        );
+        OrderDTO orderDTO = orderService.placeOrder(emailId, orderRequestDTO);
 
         return  new ResponseEntity<>(orderDTO, HttpStatus.CREATED);
     }
