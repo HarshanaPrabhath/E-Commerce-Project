@@ -14,9 +14,7 @@ services:
       timeout: 5s
       retries: 5
 
-
   app:
-    profiles: ["prod"]
     build: .
     ports:
       - "5000:5000"
@@ -30,26 +28,5 @@ services:
       mysql:
         condition: service_healthy
 
-
-  app-dev:
-    profiles: ["dev"]
-    image: maven:3.9-eclipse-temurin-21
-    working_dir: /workspace
-    command: mvn spring-boot:run -DskipTests
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./:/workspace
-      - ./images:/workspace/images
-      - m2_cache:/root/.m2
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ecommerce
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: 2003
-    depends_on:
-      mysql:
-        condition: service_healthy
-
 volumes:
   mysql_data:
-  m2_cache:

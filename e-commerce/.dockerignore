@@ -1,9 +1,0 @@
-target
-.idea
-.git
-.mvn/wrapper/maven-wrapper.jar
-images
-*.iml
-*.log
-*.md
-prompt.txt
