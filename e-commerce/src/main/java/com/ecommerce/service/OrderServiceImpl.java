@@ -6,11 +6,14 @@ import com.ecommerce.model.*;
 import com.ecommerce.payload.OrderDTO;
 import com.ecommerce.payload.OrderItemDTO;
 import com.ecommerce.payload.OrderRequestDTO;
+import com.ecommerce.payload.PaymentDTO;
+import com.ecommerce.payload.ProductDTO;
 import com.ecommerce.repositories.*;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -160,6 +163,52 @@ public class OrderServiceImpl implements OrderService{
         orderDTO.setAddressId(request.getAddressId());
 
         return orderDTO;
+    }
+
+    @Override
+    @Transactional
+    public List<OrderDTO> getAllOrders() {
+        List<Order> orders = orderRepository.findAll(Sort.by(Sort.Direction.DESC, "orderDate", "orderId"));
+        List<OrderDTO> result = new ArrayList<>(orders.size());
+        for (Order order : orders) {
+            result.add(toOrderDTO(order));
+        }
+        return result;
+    }
+
+    private OrderDTO toOrderDTO(Order order) {
+        OrderDTO dto = new OrderDTO();
+        dto.setOrderId(order.getOrderId());
+        dto.setEmail(order.getEmail());
+        dto.setOrderDate(order.getOrderDate());
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setOrderStatus(order.getOrderStatus());
+
+        if (order.getAddress() != null && order.getAddress().getId() != null) {
+            dto.setAddressId(Long.valueOf(order.getAddress().getId()));
+        }
+
+        if (order.getPayment() != null) {
+            dto.setPaymentDTO(modelMapper.map(order.getPayment(), PaymentDTO.class));
+        }
+
+        List<OrderItemDTO> itemDTOS = new ArrayList<>();
+        if (order.getOrderItems() != null) {
+            for (OrderItem item : order.getOrderItems()) {
+                OrderItemDTO itemDTO = new OrderItemDTO();
+                itemDTO.setOrderItemId(item.getOrderItemId());
+                itemDTO.setQuantity(item.getQuantity());
+                itemDTO.setDiscount(item.getDiscount());
+                itemDTO.setOrderedProductPrice(item.getOrderedProductPrice());
+                if (item.getProduct() != null) {
+                    itemDTO.setProductDTO(modelMapper.map(item.getProduct(), ProductDTO.class));
+                }
+                itemDTOS.add(itemDTO);
+            }
+        }
+        dto.setOrderItemDTOS(itemDTOS);
+
+        return dto;
     }
 
     private static String last4(String cardNumber) {

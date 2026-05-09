@@ -111,9 +111,9 @@ public class JwtService {
         return ResponseCookie.from("springBootEcom", token)
                 .path("/api")
                 .maxAge(24 * 60 * 60)
-                .httpOnly(true)       // keep token hidden from JS
+                .httpOnly(false)       // keep token hidden from JS
                 .secure(false)        // true in production (HTTPS)
-                .sameSite("None")     // required for cross-origin cookies
+                .sameSite("Secure")     // required for cross-origin cookies
                 .build();
     }
 
