@@ -1,0 +1,207 @@
+Build a club management + events + registrations module (backend + APIs, and enough admin/secretary workflows for a frontend) with the following requirements. This is NOT for WordPress/no-code. It must integrate with an existing backend and use RBAC + row-level authorization so club secretaries can only manage their own club. Keep existing project logic intact; add this as a new module.
+
+Context / Goals
+- There can be more than 10 clubs.
+- Each club has exactly 1 secretary account (login user) with permission to manage that club.
+- Secretaries can:
+  - Update club details (club name, background image, vision, mission, description).
+  - Post news updates.
+  - Publish long-form articles.
+  - Create events on their club page.
+  - Configure a customizable registration form per event (no coding for secretaries; form builder UI uses backend schema).
+  - View and export registrations for their events, including both registered users and guest registrations.
+
+Key functional requirements
+1) Clubs
+  - Admin can add clubs and remove clubs.
+  - Admin can assign ownership/role to the club secretary (exactly one secretary per club).
+  - Club has:
+    - clubName (unique, can be used as identifier; slug optional)
+    - bgImage (stored under images/clubs/ or equivalent)
+    - vision (optional)
+    - mission (optional)
+    - description
+    - registeredMemberCount (can be derived from member table or stored/cached)
+    - executiveBoard (JSON key-value is acceptable for display)
+
+2) Club members (separate from executive board display)
+  - People can apply for club membership from the website (public form/flow).
+  - Members may be:
+    - Linked to an existing User account (if they are registered users), OR
+    - Standalone member records (if not registered users yet).
+  - Member data fields:
+    - name
+    - regNumber
+    - email
+    - phone
+    - batchNumber
+  - Members can exit/leave; handle status (APPLIED/PENDING, APPROVED, REJECTED, LEFT).
+  - Store members in a dedicated table (not only JSON) so counts and queries are easy.
+
+3) News and articles
+  - Club can post:
+    - News updates (short posts)
+    - Articles (long posts)
+  - No approval workflow needed (secretary can publish directly).
+
+4) Events + customizable registration forms
+  - Events belong to a club.
+  - Each event has a registration form that is customizable per event.
+  - Both registered users and non-registered (guests) can register for events.
+  - Some events require different fields; fields can be optional/required per event.
+  - Registration forms may include file uploads (e.g., images). This is the hardest part: handle cleanly.
+  - Secretaries must be able to see all registrations for their events:
+    - If the registrant is a logged-in user: show the user identity + answers.
+    - If guest: show captured guest identity + answers.
+
+Recommended architecture (best practice)
+- Use "form schema + answers" pattern:
+  - Store an event form schema (JSON) per event, versioned, so edits don’t break past submissions.
+  - Store each registration as a base row plus answers:
+    - user_id nullable (logged-in) + guest_name/email/phone nullable (guest)
+  - Store file uploads either:
+    - In a dedicated uploaded_file table referenced from answers, OR
+    - As file metadata objects embedded in answers JSON (simpler).
+- Avoid a wide table with many nullable columns for every possible event field; it doesn’t scale and requires migrations for every new field.
+
+Simplified recommended data model (SQL-friendly)
+Tables (minimum viable):
+1) club
+  - id (PK)
+  - club_name (unique)
+  - bg_image_path
+  - vision (nullable)
+  - mission (nullable)
+  - description
+  - executive_board_json (JSON)  // for displaying president/vice/etc; can include names, roles, contacts
+  - created_at, updated_at
+
+2) club_secretary
+  - club_id (unique, FK -> club)
+  - user_id (unique, FK -> users)
+  - created_at
+  - Enforce exactly one secretary per club.
+
+3) club_member
+  - id (PK)
+  - club_id (FK)
+  - user_id (nullable FK -> users)  // when member is an existing user
+  - name
+  - reg_number
+  - email
+  - phone
+  - batch_number
+  - status (APPLIED/PENDING/APPROVED/REJECTED/LEFT)
+  - applied_at, decided_at, left_at
+
+4) club_post
+  - id (PK)
+  - club_id (FK)
+  - type (NEWS or ARTICLE)
+  - title
+  - body
+  - cover_image_path (nullable)
+  - published_at (nullable)
+  - author_user_id (FK -> users)  // secretary
+
+5) event
+  - id (PK)
+  - club_id (FK)
+  - title
+  - description
+  - hero_image_path (nullable)
+  - start_at, end_at
+  - location (nullable)
+  - capacity (nullable)
+  - published (boolean)
+
+6) event_form (versioned schema)
+  - id (PK)
+  - event_id (FK)
+  - version (int)
+  - published (boolean)
+  - schema_json (JSON)  // fields: key, label, type, required, validations, options, file accept/max size/count
+  - created_at
+
+7) event_registration (base row; supports user + guest)
+  - id (PK)
+  - event_id (FK)
+  - form_id (FK -> event_form)
+  - user_id (nullable FK -> users)
+  - guest_name (nullable)
+  - guest_email (nullable)
+  - guest_phone (nullable)
+  - answers_json (JSON)  // simplest option: store all answers here, including file references
+  - submitted_at
+  - status (SUBMITTED/CANCELLED, etc.)
+
+Optional if you prefer separating files:
+8) event_registration_file
+  - id (PK)
+  - registration_id (FK -> event_registration)
+  - field_key
+  - storage_path
+  - original_name
+  - content_type
+  - size_bytes
+  - created_at
+
+File upload guidance
+- Store club images under images/clubs/ (or your equivalent storage bucket/folder).
+- For event registration file fields:
+  - Accept multipart/form-data.
+  - Validate server-side using schema: allowed content types, size limits, max file count.
+  - Store file metadata (path, original name, type, size).
+  - Return secure download URLs or paths for secretary viewing.
+
+Authorization rules (critical)
+- Admin:
+  - Can create/update/delete clubs.
+  - Can assign secretary to a club.
+  - Can manage all clubs/events/posts/registrations.
+- Secretary:
+  - Can only manage the club they are assigned to.
+  - Row-level checks on every write/read of club-owned resources:
+    - club updates, club posts, events, forms, registrations.
+  - Must be able to list registrations for events of their club.
+
+API surface (suggested)
+Public:
+- GET /clubs
+- GET /clubs/{clubName or slug}
+- GET /clubs/{club}/posts (news+articles)
+- GET /clubs/{club}/events
+- GET /events/{eventId}
+- GET /events/{eventId}/form
+- POST /events/{eventId}/register  (guest or authenticated; supports file uploads)
+- POST /clubs/{club}/members/apply  (public membership application)
+
+Admin:
+- POST /admin/clubs
+- DELETE /admin/clubs/{clubId}
+- PUT /admin/clubs/{clubId}
+- PUT /admin/clubs/{clubId}/secretary (assign/replace secretary userId)
+
+Secretary:
+- GET /me/club (or GET /secretary/club)
+- PUT /me/club (update name/bg/vision/mission/description/executive_board_json)
+- POST /me/club/posts (news/articles)
+- POST /me/club/events
+- PUT /me/events/{eventId}
+- PUT /me/events/{eventId}/form (create new version when changing schema)
+- GET /me/events/{eventId}/registrations (list + export)
+
+Event registration payload (recommended)
+- POST /events/{eventId}/register accepts multipart/form-data:
+  - answers: JSON string for all non-file answers
+  - files: one or more file parts keyed by field_key (e.g. profile_photo)
+- Server determines whether this is authenticated:
+  - If authenticated: set user_id, ignore spoofed identity fields.
+  - If guest: require guest_name + guest_email (and optionally phone).
+
+Non-functional requirements / notes
+- Keep existing backend logic unchanged; add new modules/entities/controllers/services/repositories.
+- Prefer minimal migrations and clean JPA entities (if using Spring) or equivalent.
+- Version event forms to preserve historical registrations.
+- Ensure secretary can see both guest and registered user registrations in one list.
+
