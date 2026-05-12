@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class OrderServiceImpl implements OrderService{
+public class OrderServiceImpl implements OrderService {
 
     @Autowired
     UserRepository userRepository;
@@ -65,7 +65,7 @@ public class OrderServiceImpl implements OrderService{
         Address address = addressRepository.findById(request.getAddressId())
                 .orElseThrow(() -> new ResourceNotFoundException("Address", "addressId", request.getAddressId().toString()));
 
-        // Server total is source of truth; optionally verify client-sent totalAmount to catch client issues/tampering.
+        // Server total is source of truth; verify client-sent totalAmount to catch tampering
         if (request.getTotalAmount() != null) {
             double serverTotal = cart.getTotalPrice();
             double clientTotal = request.getTotalAmount();
@@ -79,14 +79,20 @@ public class OrderServiceImpl implements OrderService{
             throw new ApiException("paymentMethod is required.");
         }
         if ("CARD".equalsIgnoreCase(request.getPaymentMethod())) {
-            if (request.getCardNumber() == null || request.getCardNumber().length() < 12) {
-                throw new ApiException("cardNumber is required for CARD payment.");
-            }
             if (request.getCvv() == null || request.getCvv().length() < 3) {
                 throw new ApiException("cvv is required for CARD payment.");
             }
             if (request.getExpMonth() == null || request.getExpYear() == null) {
                 throw new ApiException("expMonth and expYear are required for CARD payment.");
+            }
+        }
+
+        // Validate stock for all items upfront before creating anything
+        for (CartItems cartItem : cartItems) {
+            Product product = cartItem.getProduct();
+            if (product.getQuantity() < cartItem.getQuantity()) {
+                throw new ApiException("Product '" + product.getProductName() +
+                        "' is out of stock or insufficient quantity.");
             }
         }
 
@@ -104,6 +110,7 @@ public class OrderServiceImpl implements OrderService{
         String responseMessage = "CARD".equalsIgnoreCase(request.getPaymentMethod()) && last4 != null
                 ? ("Charged card ending ****" + last4)
                 : "Payment captured (mock)";
+
         Payment payment = new Payment();
         payment.setPaymentMethod(request.getPaymentMethod());
         payment.setPgName("MOCK");
@@ -122,11 +129,6 @@ public class OrderServiceImpl implements OrderService{
         for (CartItems cartItem : cartItems) {
             Product product = cartItem.getProduct();
 
-            // Validate stock
-            if (product.getQuantity() < cartItem.getQuantity()) {
-                throw new ApiException("Product '" + product.getProductName() + "' is out of stock or insufficient quantity.");
-            }
-
             OrderItem orderItem = new OrderItem();
             orderItem.setProduct(product);
             orderItem.setQuantity(cartItem.getQuantity());
@@ -139,18 +141,16 @@ public class OrderServiceImpl implements OrderService{
         // Save all Order Items
         orderItems = orderItemRepository.saveAll(orderItems);
 
-        // Update Product Stock and Clear Cart
+        // Reduce stock for each product
         for (CartItems item : cartItems) {
             Product product = item.getProduct();
-            int quantity = item.getQuantity();
-
-            // Reduce stock
-            product.setQuantity(product.getQuantity() - quantity);
+            product.setQuantity(product.getQuantity() - item.getQuantity());
             productRepository.save(product);
-
-            // Remove item from cart
-            cartService.deleteProductFromCart(cart.getCartId(), Math.toIntExact(product.getProductId()));
         }
+
+        // FIX: Clear entire cart in one shot instead of deleting items one by one in a loop.
+        // cartService.clearCart() bulk-deletes all CartItems and resets the cart total to 0.
+        cartService.clearCart(cart.getCartId());
 
         // Map to DTO
         OrderDTO orderDTO = modelMapper.map(savedOrder, OrderDTO.class);
@@ -217,5 +217,4 @@ public class OrderServiceImpl implements OrderService{
         if (digits.length() < 4) return null;
         return digits.substring(digits.length() - 4);
     }
-
 }
